@@ -38,8 +38,8 @@ Docs:
 - Method 3: [Install `Node.js` using `Nix`](#install-nodejs-using-nix)
 
 > [!NOTE]
-> Probably only the [`Nix`](./nix.md#what-is-nix) method will work
-> because a [library](./software-types.md#library) is missing on your VM.
+> Probably only the [`Nix`](./nix.md#what-is-nix) method will work on your VM
+> because a [library](./software-types.md#library) is missing there.
 >
 > See <https://github.com/nodejs/node/issues/60790>
 >
