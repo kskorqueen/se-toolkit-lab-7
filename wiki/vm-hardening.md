@@ -250,4 +250,3 @@ Complete these steps:
    ```
 
    The output should be empty.
-
