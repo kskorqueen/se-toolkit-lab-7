@@ -90,6 +90,3 @@ You should see a welcome message printed to the terminal. If it prints something
 - [ ] Repo is cloned at `~/se-toolkit-lab-7` on the VM.
 - [ ] Git workflow followed (issue, branch, PR, review, merge).
 
-## Agent instructions
-
-> The student likely doesn't know what "testable handler architecture" means — explain it before scaffolding: a handler is a function that takes input and returns a response. If it depends on Telegram, you can't test it without a running bot. As a plain function, you can call it from `--test` mode, from unit tests, or from Telegram — same logic, different entry points. Make the decision on project structure yourself, explain why, scaffold it, then ask: "Does this make sense? Would you change anything?"

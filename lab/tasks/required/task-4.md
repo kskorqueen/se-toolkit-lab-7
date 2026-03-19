@@ -52,6 +52,3 @@ You should see the bot service running alongside app, postgres, caddy. Then open
 - [ ] README has a section with "deploy" in heading.
 - [ ] Bot responds in Telegram (TA-verified).
 
-## Agent instructions
-
-> Ask: "The bot needs to reach the backend inside Docker. Can it use `localhost`?" Then explain: Docker Compose creates a shared network where services reach each other by name (e.g., `http://app:8000`), not `localhost`. This is the one thing that trips everyone up in deployment.

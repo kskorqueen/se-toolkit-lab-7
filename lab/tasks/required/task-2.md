@@ -106,6 +106,3 @@ You should see a friendly error message, not a Python traceback.
 - [ ] With backend stopped, `--test "/health"` returns friendly message, no `Traceback`.
 - [ ] Git workflow followed.
 
-## Agent instructions
-
-> Build one command at a time. After each, run `--test` and show the output. Do not implement all 5 at once — the student needs to see each one work before moving on. Show the actual API response before formatting it so the student understands the data structure.

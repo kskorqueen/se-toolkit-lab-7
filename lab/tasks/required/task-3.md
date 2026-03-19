@@ -124,6 +124,3 @@ The first three should return real answers with data from your backend. The last
 - [ ] Source code defines at least 9 tool/function schemas.
 - [ ] Git workflow followed.
 
-## Agent instructions
-
-> Ask: "Do you know how LLM function calling works?" The student may have done it in Lab 6 but explain concisely anyway: the LLM gets a list of tools with descriptions and decides which to call based on the user's message. The tool description quality matters more than the system prompt — if the description is bad, the LLM picks the wrong tool regardless.
