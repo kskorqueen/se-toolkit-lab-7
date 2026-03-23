@@ -2,66 +2,54 @@
 # Also see https://docs.astral.sh/uv/guides/integration/docker/
 
 # ---
-# Stage 1: build the application in the `/app` directory.
-# ---
-
+# --- Stage 1: build the application ---
 ARG REGISTRY_PREFIX=harbor.pg.innopolis.university/docker-hub-cache/
 FROM ${REGISTRY_PREFIX}astral/uv:python3.14-bookworm-slim AS builder
+
 ENV UV_COMPILE_BYTECODE=1 UV_LINK_MODE=copy
-
-# Omit development dependencies
 ENV UV_NO_DEV=1
-
-# Disable Python downloads, because we want to use the system interpreter
-# across both images. If using a managed Python version, it needs to be
-# copied from the build image into the final image; see `standalone.Dockerfile`
-# for an example.
 ENV UV_PYTHON_DOWNLOADS=0
 
 WORKDIR /app
-RUN --mount=type=cache,target=/root/.cache/uv \
-    --mount=type=bind,source=uv.lock,target=uv.lock \
-    --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
-    --mount=type=bind,source=backend/pyproject.toml,target=backend/pyproject.toml \
-    uv sync --locked --no-install-project
 
+# Копируем backend и pyproject.toml
 COPY backend /app/backend
 COPY pyproject.toml uv.lock /app/
 
+# Работаем внутри backend
+WORKDIR /app/backend
+
+RUN python3 -m ensurepip --upgrade \
+    && python3 -m pip install --upgrade pip \
+    && python3 -m pip install --upgrade uv
+    
+# Синхронизируем зависимости uv
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked
+    uv sync
 
-# ---
-# Stage 2: use a final image without uv
-# ---
-
+# --- Stage 2: final image ---
 ARG REGISTRY_PREFIX=harbor.pg.innopolis.university/docker-hub-cache/
 FROM ${REGISTRY_PREFIX}python:3.14.2-slim-bookworm
-# It is important to use the image that matches the builder, as the path to the
-# Python executable must be the same, e.g., using `python:3.11-slim-bookworm`
-# will fail.
 
-# # Set environment variables for Python and application
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
-# # Make sure we use UTF-8 encoding
 ENV LANG=C.UTF-8
 
-# Setup a non-root user
+# Создаём непользовательскую учётку
 RUN groupadd --system --gid 999 nonroot \
     && useradd --system --gid 999 --uid 999 --create-home nonroot
 
-# Copy the application from the builder
+# Копируем backend из билдера
 COPY --from=builder --chown=nonroot:nonroot /app /app
 
-# Place executables in the environment at the front of the path
-ENV PATH="/app/.venv/bin:$PATH"
+# Добавляем venv из builder в PATH
+ENV PATH="/app/backend/.venv/bin:$PATH"
 
-# Use the non-root user to run our application
+# Переключаемся на непользовательскую учётку
 USER nonroot
 
-# Use `/app` as the working directory
-WORKDIR /app
+# Рабочая директория
+WORKDIR /app/backend
 
-# Run the FastAPI application
-CMD ["sh", "-c", "python backend/app/run.py"]
+# CMD — путь до run.py относительно WORKDIR
+CMD ["python", "run.py"]
