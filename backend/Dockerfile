@@ -1,7 +1,3 @@
-# Adapted from https://github.com/astral-sh/uv-docker-example/blob/fa761744819c05f4ce207bde1f0a396f6be3915f/multistage.Dockerfile
-# Also see https://docs.astral.sh/uv/guides/integration/docker/
-
-# ---
 # --- Stage 1: build the application ---
 ARG REGISTRY_PREFIX=harbor.pg.innopolis.university/docker-hub-cache/
 FROM ${REGISTRY_PREFIX}astral/uv:python3.14-bookworm-slim AS builder
@@ -12,20 +8,15 @@ ENV UV_PYTHON_DOWNLOADS=0
 
 WORKDIR /app
 
-# Копируем backend и pyproject.toml
-COPY backend /app/backend
+# Копируем файлы конфигурации зависимостей
 COPY pyproject.toml uv.lock /app/
+COPY backend /app/backend
 
-# Работаем внутри backend
 WORKDIR /app/backend
 
-RUN python3 -m ensurepip --upgrade \
-    && python3 -m pip install --upgrade pip \
-    && python3 -m pip install --upgrade uv
-    
-# Синхронизируем зависимости uv
+# Синхронизируем зависимости (создастся окружение в /app/.venv)
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync
+    uv sync --locked
 
 # --- Stage 2: final image ---
 ARG REGISTRY_PREFIX=harbor.pg.innopolis.university/docker-hub-cache/
@@ -35,21 +26,18 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV LANG=C.UTF-8
 
-# Создаём непользовательскую учётку
+# Создаем пользователя без прав root для безопасности
 RUN groupadd --system --gid 999 nonroot \
     && useradd --system --gid 999 --uid 999 --create-home nonroot
 
-# Копируем backend из билдера
+# Копируем готовое окружение и код из первого стейджа
 COPY --from=builder --chown=nonroot:nonroot /app /app
 
-# Добавляем venv из builder в PATH
-ENV PATH="/app/backend/.venv/bin:$PATH"
+# Добавляем виртуальное окружение в PATH
+ENV PATH="/app/.venv/bin:$PATH"
 
-# Переключаемся на непользовательскую учётку
 USER nonroot
-
-# Рабочая директория
 WORKDIR /app/backend
 
-# CMD — путь до run.py относительно WORKDIR
-CMD ["python", "run.py"]
+# ИСПРАВЛЕННАЯ СТРОКА С ПРОБЕЛОМ (используем стандартный FastAPI CLI)
+CMD ["fastapi", "run", "app/main.py", "--port", "8000", "--host", "0.0.0.0"]
