@@ -8,15 +8,13 @@ ENV UV_PYTHON_DOWNLOADS=0
 
 WORKDIR /app
 
-# Копируем файлы конфигурации зависимостей
+# Копируем всё в /app
 COPY pyproject.toml uv.lock /app/
 COPY backend /app/backend
 
-WORKDIR /app/backend
-
-# Синхронизируем зависимости (создастся окружение в /app/.venv)
+# Синхронизируем зависимости (uv создаст окружение в /app/.venv)
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --locked
+    uv sync
 
 # --- Stage 2: final image ---
 ARG REGISTRY_PREFIX=harbor.pg.innopolis.university/docker-hub-cache/
@@ -26,18 +24,18 @@ ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 ENV LANG=C.UTF-8
 
-# Создаем пользователя без прав root для безопасности
-RUN groupadd --system --gid 999 nonroot \
-    && useradd --system --gid 999 --uid 999 --create-home nonroot
+RUN groupadd --system --gid 999 nonroot && \
+    useradd --system --gid 999 --uid 999 --create-home nonroot
 
-# Копируем готовое окружение и код из первого стейджа
+# Копируем всё из билдера
 COPY --from=builder --chown=nonroot:nonroot /app /app
 
-# Добавляем виртуальное окружение в PATH
+# Исправленный путь к PATH (без слова backend)
 ENV PATH="/app/.venv/bin:$PATH"
 
 USER nonroot
+# Работаем из папки backend, чтобы uvicorn видел папку app
 WORKDIR /app/backend
 
-# ИСПРАВЛЕННАЯ СТРОКА С ПРОБЕЛОМ (используем стандартный FastAPI CLI)
-CMD ["fastapi", "run", "app/main.py", "--port", "8000", "--host", "0.0.0.0"]
+# ЗАПУСК: указываем прямой путь к python в корневой папке /app/.venv
+CMD ["/app/.venv/bin/python", "-m", "uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
