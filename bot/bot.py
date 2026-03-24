@@ -1,69 +1,57 @@
 import sys
 import argparse
 import asyncio
-import os
-from dotenv import load_dotenv
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes, CallbackQueryHandler
 
-# Загружаем обработчики из твоего файла
-from handlers.core.commands import handle_start, handle_help, handle_health, handle_labs, handle_scores
+import config
+from handlers.core.llm import handle_query
 
-# Загружаем токен
-load_dotenv('../.env.bot.secret')
-TOKEN = os.getenv("BOT_TOKEN")
+async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [
+        [InlineKeyboardButton("What labs are available?", callback_data="what labs are available?")],
+        [InlineKeyboardButton("Which lab has the lowest pass rate?", callback_data="which lab has the lowest pass rate?")],
+        [InlineKeyboardButton("Show top 5 students in lab-04", callback_data="who are the top 5 students in lab-04?")],
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.message.reply_text(
+        "Hello! I am your course assistant. Ask me anything or choose a query below:", 
+        reply_markup=reply_markup
+    )
 
-# Функции-обертки для Telegram
-async def tg_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(handle_start())
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.message.text
+    response = await handle_query(query)
+    await update.message.reply_text(response)
 
-async def tg_help(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(handle_help())
-
-async def tg_health(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(handle_health())
-
-async def tg_labs(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(handle_labs())
-
-async def tg_scores(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Берем аргументы после команды /scores
-    args = " ".join(context.args)
-    await update.message.reply_text(handle_scores(args))
+async def handle_callback(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query.data
+    await update.callback_query.answer()
+    await update.callback_query.message.reply_text(f"Running Query: {query} ...")
+    response = await handle_query(query)
+    await update.callback_query.message.reply_text(response)
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--test", type=str, help="Run a command in test mode")
-    args, _ = parser.parse_known_args()
+    parser.add_argument("--test", type=str, help="Test a query in CLI")
+    args = parser.parse_args()
 
-    # РЕЖИМ ТЕСТА (для авточекера)
     if args.test:
-        cmd_parts = args.test.strip().split(" ", 1)
-        cmd = cmd_parts[0]
-        cmd_args = cmd_parts[1] if len(cmd_parts) > 1 else ""
-        
-        if cmd == "/start": print(handle_start())
-        elif cmd == "/help": print(handle_help())
-        elif cmd == "/health": print(handle_health())
-        elif cmd == "/labs": print(handle_labs())
-        elif cmd == "/scores": print(handle_scores(cmd_args))
-        else: print("Unknown command")
-        sys.exit(0)
+        # Для тестов в CLI запускаем асинхронную функцию вручную
+        print(asyncio.run(handle_query(args.test)))
+        return
 
-    # РЕЖИМ TELEGRAM (живой бот)
-    if not TOKEN:
-        print("Error: BOT_TOKEN not found in .env.bot.secret")
+    if not config.TELEGRAM_BOT_TOKEN:
+        print("TELEGRAM_BOT_TOKEN is not set! Check your .env file.", file=sys.stderr)
         sys.exit(1)
 
-    print("Bot is starting in Telegram mode... Press Ctrl+C to stop.")
-    app = ApplicationBuilder().token(TOKEN).build()
-    
-    app.add_handler(CommandHandler("start", tg_start))
-    app.add_handler(CommandHandler("help", tg_help))
-    app.add_handler(CommandHandler("health", tg_health))
-    app.add_handler(CommandHandler("labs", tg_labs))
-    app.add_handler(CommandHandler("scores", tg_scores))
-    
+    app = ApplicationBuilder().token(config.TELEGRAM_BOT_TOKEN).build()
+    app.add_handler(CommandHandler("start", start_command))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
+    app.add_handler(CallbackQueryHandler(handle_callback))
+
+    print("Running in Telegram mode...", file=sys.stderr)
+    # run_polling() - синхронная блокирующая функция, await перед ней не нужен!
     app.run_polling()
 
 if __name__ == "__main__":

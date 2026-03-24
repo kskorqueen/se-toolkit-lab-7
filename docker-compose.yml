@@ -70,6 +70,28 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+  bot:
+    build:
+      context: .
+      dockerfile: bot/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      - backend
+    networks:
+      - lms-network
+    env_file:
+      - .env.docker.secret
+    environment:
+      - PYTHONUNBUFFERED=1
+      # Переопределяем URL бэкенда для работы внутри сети Docker
+      - LMS_API_BASE_URL=http://backend:8000
+      # Если LLM прокси запущен на хосте, используем host.docker.internal
+      - LLM_API_BASE_URL=http://host.docker.internal:42005/v1
+      - LLM_API_KEY=queen
+      - LLM_API_MODEL=coder-model
+      - BOT_TOKEN=8763548143:AAGpqYkmDWfbc56vjRjgTsXLjXchj7k4XpQ
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
 
   caddy:
     build:

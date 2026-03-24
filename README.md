@@ -95,3 +95,21 @@ By the end of this lab, you should be able to say:
 ### Optional
 
 1. [Flutter Web Chatbot](./lab/tasks/optional/task-1.md)
+## Deploy
+To deploy the bot and backend:
+1. Set env vars in `.env.docker.secret`: `BOT_TOKEN`, `LLM_API_KEY`, `LMS_API_BASE_URL`.
+2. Run: `docker compose --env-file .env.docker.secret up --build -d`.
+3. Verify: Check `docker compose ps` and send `/health` to the bot in Telegram.
+### Prerequisites
+Create a `.env.docker.secret` file in the root directory with the following variables:
+- `BOT_TOKEN`: Your Telegram Bot token.
+- `LLM_API_KEY`: API key for the LLM proxy (e.g., "queen").
+- `LLM_API_BASE_URL`: URL for the LLM proxy (e.g., `http://host.docker.internal:42005/v1`).
+- `LMS_API_BASE_URL`: Internal backend URL (`http://backend:8000`).
+- Database credentials (`POSTGRES_USER`, `POSTGRES_PASSWORD`, etc.).
+
+### Commands
+
+1. **Build and start all services:**
+   ```bash
+   docker compose --env-file .env.docker.secret up --build -d
