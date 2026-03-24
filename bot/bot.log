@@ -1,0 +1,8 @@
+nohup: ignoring input
+Running in Telegram mode...
+[tool] LLM called: get_groups({'lab': 'lab-03'})
+[tool] Result: 11
+[tool] LLM called: get_items({})
+[tool] Result: 50
+[tool] LLM called: get_top_learners({'lab': 'lab-04', 'limit': 5})
+[tool] Result: 5
