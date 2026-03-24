@@ -1,8 +1,8 @@
-def handle_start():
+def handle_start(args):
     return "Welcome! I am your bot. Use /help to see available commands."
 
-def handle_help():
+def handle_help(args):
     return "Available commands: /start, /help, /health, /labs"
 
-def handle_unknown():
+def handle_unknown(args):
     return "Sorry, I don't understand that command."

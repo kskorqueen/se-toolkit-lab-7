@@ -1,16 +1,10 @@
-# Development Plan
+# Development Plan for Telegram Bot
 
-Цель проекта — создать масштабируемого Telegram-бота для взаимодействия с LMS. 
-Архитектура строится на принципе разделения ответственности: 
-1. `handlers/` содержат бизнес-логику команд и не зависят от Telegram.
-2. `services/` отвечают за общение с API бэкенда и LLM.
-3. `bot.py` — это точка входа, которая может работать в двух режимах: CLI (--test) для отладки и Polling для Telegram.
+## Phase 1: Scaffolding and Architecture
+In this phase, we set up the core structure. We will implement a clean architecture where command handlers are decoupled from the Telegram bot framework. This ensures that logic can be tested independently using the `--test` CLI flag. We will define the project structure within the `bot/` directory and configure `pyproject.toml` using `uv`.
 
-Этапы:
-- Этап 1: Создание скелета с поддержкой --test режима.
-- Этап 2: Интеграция с бэкендом (запросы к /items и /pipeline).
-- Этап 3: Реализация Intent Routing (Task 3) с использованием LLM.
-- Этап 4: Deploy и проверка работы бота в Telegram.
-- Этап 5: Реализация работы посредством тестирования на маленьких выборках
-- Этап 6: Распостранение использования на территории Российской Федерации
-- Этап 7: Получение гранта для дальнейших инноваций 
+## Phase 2: Integration and Routing
+Once the skeleton is ready, we will integrate with the existing LMS backend and LLM services. We will create a robust routing mechanism in `bot/handlers/` to process user messages. This involves implementing services to fetch data from the LMS API and processing intent-based queries.
+
+## Phase 3: Testing and Deployment
+Finally, we will refine the command responses and ensure that the `--test` mode provides accurate feedback for all commands (`/start`, `/help`, `/health`, etc.). We will configure environment variables to securely manage API keys and bot tokens. After successful validation in the local test environment, we will deploy the bot to the VM and verify its operation within the Telegram interface, ensuring persistent execution and proper logging.
