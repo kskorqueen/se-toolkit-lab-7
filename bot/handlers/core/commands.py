@@ -8,74 +8,58 @@ def handle_start():
     return "Welcome! I am your LMS bot. Use /help to see available commands."
 
 def handle_help():
-    # Возвращаем строго 5+ строк, чтобы авточекер был доволен
     return (
         "Available commands:\n"
-        "/start - Welcome message and bot name\n"
-        "/help - List all available commands\n"
-        "/health - Check if backend is up and running\n"
-        "/labs - Show the list of all available labs\n"
-        "/scores <lab_id> - View pass rates for tasks in a lab"
+        "/start - Welcome message\n"
+        "/help - List all commands\n"
+        "/health - Check backend status\n"
+        "/labs - List available labs\n"
+        "/scores <lab> - Show pass rates for a lab"
     )
 
 def handle_health():
-    url = f"{config.LMS_API_BASE_URL}/items/"
     try:
         with get_client() as client:
-            r = client.get(url)
-            r.raise_for_status()
-            count = len(r.json())
-            return f"Backend is healthy. {count} items available."
+            resp = client.get(f"{config.LMS_API_BASE_URL}/items/")
+            resp.raise_for_status()
+            return f"Backend is healthy. {len(resp.json())} items available."
     except Exception as e:
         return f"Backend error: {str(e)}"
 
 def handle_labs():
-    url = f"{config.LMS_API_BASE_URL}/items/"
     try:
         with get_client() as client:
-            r = client.get(url)
-            r.raise_for_status()
-            data = r.json()
-            labs = []
-            for i in data:
-                # Превращаем id в строку ПЕРЕД .lower(), чтобы не было ошибки с 'int'
-                item_id = str(i.get('id', ''))
-                item_type = str(i.get('type', ''))
-                title = i.get('title', item_id)
-                
-                if item_type == 'lab' or 'lab' in item_id.lower():
-                    labs.append(f"- {item_id} — {title}")
-            
-            if not labs:
-                return "No labs found in the backend. Please run ETL sync."
-                
-            return "Available labs:\n" + "\n".join(sorted(list(set(labs))))
+            resp = client.get(f"{config.LMS_API_BASE_URL}/items/")
+            resp.raise_for_status()
+            data = resp.json()
+            labs = [i.get('title') for i in data if i.get('type') == 'lab' or 'Lab' in str(i.get('title'))]
+            if not labs: return "No labs available."
+            unique_labs = sorted(list(set(labs)))
+            return "Available labs:\n" + "\n".join([f"- {lab}" for lab in unique_labs])
     except Exception as e:
-         return f"Backend error: {str(e)}"
+        return f"Backend error: {str(e)}"
 
 def handle_scores(args):
     if not args:
-        return "Please provide a lab, e.g., /scores lab-04"
-    lab = args[0]
-    url = f"{config.LMS_API_BASE_URL}/analytics/pass-rates?lab={lab}"
+        return "Please provide a lab name. Example: /scores lab-04"
+    lab_id = args.strip()
     try:
         with get_client() as client:
-            r = client.get(url)
-            if r.status_code == 404:
-                return f"Lab {lab} not found."
-            r.raise_for_status()
-            data = r.json()
-            if not data:
-                return f"No scores found for {lab}."
+            resp = client.get(f"{config.LMS_API_BASE_URL}/analytics/pass-rates?lab={lab_id}")
+            resp.raise_for_status()
+            data = resp.json()
+            if not data: return f"No pass rates found for {lab_id}."
             
-            lines = [f"Pass rates for {lab}:"]
+            res = [f"Pass rates for {lab_id}:"]
             for item in data:
-                task = item.get('task') or item.get('task_title') or item.get('title') or 'Unknown'
+                name = item.get('task') or item.get('task_name') or item.get('title') or item.get('task_id') or "Unknown Task"
                 rate = item.get('pass_rate', 0.0)
-                # Форматируем как 92.1% или 0.0%
-                rate_str = f"{rate * 100:.1f}%" if isinstance(rate, float) and rate <= 1.0 else f"{rate}%"
-                attempts = item.get('attempts', 0)
-                lines.append(f"- {task}: {rate_str} ({attempts} attempts)")
-            return "\n".join(lines)
+                attempts = item.get('total_attempts', 0)
+                if isinstance(rate, (int, float)) and 0 < rate <= 1.0:
+                    rate_val = f"{rate * 100:.1f}%"
+                else:
+                    rate_val = f"{rate}%"
+                res.append(f"- {name}: {rate_val} ({attempts} attempts)")
+            return "\n".join(res)
     except Exception as e:
-         return f"Backend error: {str(e)}"
+        return f"Backend error: {str(e)}"
