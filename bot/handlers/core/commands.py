@@ -32,7 +32,9 @@ def handle_labs():
             data = resp.json()
             labs = [i.get('title') for i in data if i.get('type') == 'lab' or 'Lab' in str(i.get('title'))]
             if not labs: return "No labs available."
-            return "Available labs:\n" + "\n".join([f"- {lab}" for lab in sorted(labs)])
+            # Используем set(), чтобы убрать дубликаты "Lab setup"
+            unique_labs = sorted(list(set(labs)))
+            return "Available labs:\n" + "\n".join([f"- {lab}" for lab in unique_labs])
     except Exception as e:
         return f"Backend error: {str(e)}"
 
@@ -49,7 +51,7 @@ def handle_scores(args):
             
             res = [f"Pass rates for {lab_id}:"]
             for item in data:
-                # ГЛАВНОЕ ИСПРАВЛЕНИЕ: ищем по ключу 'task', который был в твоем успешном выводе
+                # Ищем название задачи в разных полях
                 name = item.get('task') or item.get('task_name') or item.get('title') or item.get('task_id') or "Unknown Task"
                 
                 rate = item.get('pass_rate', 0.0)
