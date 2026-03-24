@@ -1,14 +1,21 @@
 import os
 from dotenv import load_dotenv
 
-# На всякий случай проверяем оба пути
-load_dotenv('.env.bot.secret')
-load_dotenv('../.env.bot.secret')
+# Ищем файл в текущей папке ИЛИ в папке выше (на уровень выше)
+if os.path.exists(".env.bot.secret"):
+    load_dotenv(".env.bot.secret")
+elif os.path.exists("../.env.bot.secret"):
+    load_dotenv("../.env.bot.secret")
 
-LMS_API_BASE_URL = os.getenv("LMS_API_BASE_URL", "http://127.0.0.1:42002").strip().rstrip('/')
-LMS_API_BASE_URL = LMS_API_BASE_URL.replace("backend", "127.0.0.1").replace("localhost", "127.0.0.1")
+LMS_API_BASE_URL = os.getenv("LMS_API_BASE_URL", "http://localhost:42002")
+LMS_API_KEY = os.getenv("LMS_API_KEY")
 
-if not LMS_API_BASE_URL.startswith("http"):
-    LMS_API_BASE_URL = "http://" + LMS_API_BASE_URL
+LLM_API_BASE_URL = os.getenv("LLM_API_BASE_URL", "http://localhost:42005/v1")
+LLM_API_KEY = os.getenv("LLM_API_KEY")
+LLM_API_MODEL = os.getenv("LLM_API_MODEL", "coder-model")
 
-LMS_API_KEY = os.getenv("LMS_API_KEY", "").strip()
+TELEGRAM_BOT_TOKEN = os.getenv("BOT_TOKEN")
+
+# Проверка загрузки (для отладки)
+if not LLM_API_KEY:
+    print("WARNING: LLM_API_KEY is not set! Check your .env.bot.secret path.")
